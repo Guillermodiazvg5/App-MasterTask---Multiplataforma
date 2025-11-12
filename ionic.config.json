@@ -1,0 +1,7 @@
+{
+  "name": "App-MasterTasks",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "react-vite"
+}
