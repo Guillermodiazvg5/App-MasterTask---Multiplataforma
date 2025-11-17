@@ -42,7 +42,7 @@ Una aplicación móvil multiplataforma para gestión de tareas académicas y per
 
 ```bash
 # Clonar repositorio
-git clone https://github.com/TU_USER/taskmaster-app.git
+git clone https://github.com/Guillermodiazvg5/App-MasterTask---Multiplataforma.git
 
 # Instalar dependencias
 npm install
