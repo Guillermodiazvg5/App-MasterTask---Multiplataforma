@@ -1,0 +1,160 @@
+/* src/App.css */
+
+/* ===== ESTILOS GLOBALES PARA SAFE AREA ===== */
+
+/* Variables CSS para safe area */
+:root {
+  --safe-area-top: env(safe-area-inset-top, 25px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-left: env(safe-area-inset-left, 0px);
+  --safe-area-right: env(safe-area-inset-right, 0px);
+  
+  /* Alturas del header */
+  --header-height: 56px;
+  --header-total-height: calc(var(--header-height) + var(--safe-area-top));
+  
+  /* Colores del status bar */
+  --status-bar-light: #ffffff;
+  --status-bar-dark: #1e1e1e;
+}
+
+/* ===== RESET PARA HEADER ===== */
+ion-header {
+  padding-top: var(--safe-area-top) !important;
+  background: var(--ion-background-color);
+  position: relative;
+  z-index: 1000;
+  transition: padding-top 0.3s ease;
+}
+
+/* Eliminar bordes del header */
+ion-header.ion-no-border {
+  --border-width: 0;
+  --border-style: none;
+}
+
+/* Toolbar con altura fija */
+ion-toolbar {
+  --min-height: var(--header-height);
+  --padding-top: 0;
+  --padding-bottom: 0;
+  --background: transparent;
+}
+
+/* ===== AJUSTES POR PLATAFORMA ===== */
+
+/* iOS - Espaciado adicional */
+.ios ion-header {
+  --safe-area-top: max(env(safe-area-inset-top), 30px);
+  padding-top: var(--safe-area-top) !important;
+}
+
+.ios ion-toolbar {
+  --min-height: 44px;
+  --border-radius: 12px;
+  --padding-start: 12px;
+  --padding-end: 12px;
+}
+
+/* Android - Status bar más pequeña */
+.md ion-header {
+  --safe-area-top: 25px;
+  padding-top: var(--safe-area-top) !important;
+}
+
+.md ion-toolbar {
+  --min-height: 56px;
+  --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* ===== CONTENIDO CON ESPACIO PARA HEADER ===== */
+ion-content.with-safe-area {
+  --padding-top: var(--header-total-height) !important;
+  --padding-bottom: var(--safe-area-bottom) !important;
+  --padding-start: var(--safe-area-left) !important;
+  --padding-end: var(--safe-area-right) !important;
+}
+
+/* Clase para contenido principal */
+.main-content {
+  min-height: calc(100vh - var(--header-total-height));
+  padding-top: var(--header-total-height);
+}
+
+/* ===== UTILIDADES ===== */
+
+/* Debug helper (quitar en producción) */
+.debug-safe-area {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--safe-area-top);
+  background: linear-gradient(90deg, 
+    rgba(255,0,0,0.3) 0%, 
+    rgba(0,255,0,0.3) 50%, 
+    rgba(0,0,255,0.3) 100%);
+  z-index: 9999;
+  pointer-events: none;
+  font-size: 10px;
+  color: black;
+  text-align: center;
+  padding: 2px;
+  font-weight: bold;
+}
+
+/* Scroll suave */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Transiciones para modo nativo */
+.native-transition {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 360px) {
+  :root {
+    --header-height: 52px;
+  }
+  
+  ion-toolbar {
+    --min-height: 52px;
+    --padding-start: 8px;
+    --padding-end: 8px;
+  }
+}
+
+@media (min-width: 768px) {
+  /* Estilos para tablet/escritorio */
+  :root {
+    --safe-area-top: 0px;
+  }
+  
+  ion-header {
+    padding-top: 0 !important;
+  }
+}
+
+/* ===== MODO OSCURO ===== */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --status-bar-light: #1e1e1e;
+    --status-bar-dark: #121212;
+  }
+  
+  .md ion-toolbar {
+    --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+}
+
+/* ===== ANIMACIONES ===== */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-out;
+}

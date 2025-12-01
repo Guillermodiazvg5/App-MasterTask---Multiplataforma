@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   IonContent,
   IonHeader,
@@ -19,8 +19,20 @@ import {
   IonFabButton,
   IonIcon,
   IonChip,
+  IonButtons,
+  IonPopover,
+  IonSegment,
+  IonSegmentButton,
 } from "@ionic/react";
-import { add, trash, create } from "ionicons/icons";
+import { 
+  add, 
+  trash, 
+  create, 
+  ellipsisVertical,
+  informationCircle,
+  sunny,
+  moon
+} from "ionicons/icons";
 import { useTasks } from "../hooks/useTasks";
 import { useTaskFilters } from "../hooks/useTaskFilters";
 import {
@@ -42,24 +54,78 @@ const Home: React.FC = () => {
     toggleTask,
     deleteTask,
     clearAllTasks,
-    debugStorage,
   } = useTasks();
 
   // Hook de filtros
   const {
     activeFilter,
     setActiveFilter,
-    searchQuery, // ← NUEVO
-    setSearchQuery, // ← NUEVO
+    searchQuery,
+    setSearchQuery,
     filteredTasks,
     filterStats,
     getActiveFilterName,
-    clearSearch, // ← NUEVO
+    clearSearch,
   } = useTaskFilters(tasks);
 
   const [showClearAlert, setShowClearAlert] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null);
+  const [showMenu, setShowMenu] = useState(false);
+  const [menuEvent, setMenuEvent] = useState<any>(null);
+  const [darkMode, setDarkMode] = useState<boolean>(() => {
+    // Cargar preferencia del localStorage o detectar preferencia del sistema
+    const saved = localStorage.getItem('darkMode');
+    if (saved !== null) {
+      return saved === 'true';
+    }
+    // Si no hay preferencia guardada, usar preferencia del sistema
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
+  const [showDeleteCompletedAlert, setShowDeleteCompletedAlert] = useState(false);
+
+  // Efecto para aplicar el tema
+  useEffect(() => {
+    const applyTheme = () => {
+      if (darkMode) {
+        // Aplicar modo oscuro
+        document.body.classList.add('dark');
+        document.body.setAttribute('data-theme', 'dark');
+        // Para Ionic, también necesitamos actualizar el atributo en el elemento ion-app
+        document.querySelector('ion-app')?.classList.add('ion-palette-dark');
+        // Guardar en localStorage
+        localStorage.setItem('darkMode', 'true');
+      } else {
+        // Aplicar modo claro
+        document.body.classList.remove('dark');
+        document.body.removeAttribute('data-theme');
+        document.querySelector('ion-app')?.classList.remove('ion-palette-dark');
+        localStorage.setItem('darkMode', 'false');
+      }
+    };
+
+    applyTheme();
+  }, [darkMode]);
+
+  // Escuchar cambios en la preferencia del sistema
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    
+    const handleChange = (e: MediaQueryListEvent) => {
+      // Solo cambiar si el usuario no ha establecido una preferencia manual
+      if (localStorage.getItem('darkMode') === null) {
+        setDarkMode(e.matches);
+      }
+    };
+
+    // Agregar listener
+    mediaQuery.addEventListener('change', handleChange);
+    
+    // Limpieza
+    return () => {
+      mediaQuery.removeEventListener('change', handleChange);
+    };
+  }, []);
 
   const handleAddTask = async (title: string, category: Category) => {
     await createTask(title, category);
@@ -79,38 +145,142 @@ const Home: React.FC = () => {
     setShowClearAlert(false);
   };
 
+  // Nueva función para eliminar tareas completadas
+  const handleDeleteCompleted = async () => {
+    const completedTasks = tasks.filter(task => task.completed);
+    for (const task of completedTasks) {
+      await deleteTask(task.id);
+    }
+    setShowDeleteCompletedAlert(false);
+  };
+
   const getCategoryColor = (category: Category) => {
     return CategoryColors[category] || "medium";
   };
 
+  // Abrir menú de opciones
+  const openMenu = (e: React.MouseEvent) => {
+    setMenuEvent(e.nativeEvent);
+    setShowMenu(true);
+  };
+
+  // Alternar tema
+  const toggleTheme = () => {
+    setDarkMode(!darkMode);
+  };
+
+  const completedCount = filterStats.completed;
+
   return (
     <IonPage>
-      <IonHeader>
-        <IonToolbar color="primary">
-          <IonTitle>MasterTasks</IonTitle>
-          <IonButton
-            slot="start"
-            fill="clear"
-            color="light"
-            routerLink="/about"
-            style={{ marginLeft: "8px" }}
-          >
-            Acerca de
-          </IonButton>
-          <IonButton
-            slot="end"
-            color="light"
-            onClick={() => setShowClearAlert(true)}
-            disabled={tasks.length === 0}
-          >
-            <IonIcon icon={trash} />
-          </IonButton>
+      {/* ===== HEADER MEJORADO ===== */}
+      <IonHeader className="mastertasks-header">
+        <IonToolbar>
+          {/* Título con icono */}
+          <div slot="start" className="header-title-container">
+            <IonIcon 
+              icon={create} 
+              color="primary" 
+              className="header-logo"
+            />
+            <IonTitle className="app-title">
+              MasterTasks
+              {tasks.length > 0 && (
+                <IonBadge color="medium" className="title-badge">
+                  {tasks.length}
+                </IonBadge>
+              )}
+            </IonTitle>
+          </div>
+
+          {/* Botones de acción */}
+          <IonButtons slot="end">
+            {/* Botón de tema claro/oscuro FUNCIONAL */}
+            <IonButton 
+              onClick={toggleTheme}
+              fill="clear"
+              size="small"
+              className="theme-toggle"
+              title={darkMode ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+            >
+              <IonIcon 
+                icon={darkMode ? sunny : moon} 
+                slot="icon-only"
+                color={darkMode ? "warning" : "dark"}
+              />
+            </IonButton>
+
+            {/* Botón de menú */}
+            <IonButton 
+              onClick={openMenu}
+              fill="clear"
+              size="small"
+              className="menu-button"
+            >
+              <IonIcon icon={ellipsisVertical} slot="icon-only" />
+            </IonButton>
+          </IonButtons>
         </IonToolbar>
       </IonHeader>
-      <IonContent fullscreen>
+
+      {/* ===== POPOVER DE OPCIONES ===== */}
+      <IonPopover
+        isOpen={showMenu}
+        event={menuEvent}
+        onDidDismiss={() => setShowMenu(false)}
+        side="bottom"
+        alignment="end"
+      >
+        <IonContent>
+          <IonList lines="full">
+            <IonItem 
+              button 
+              detail={false}
+              routerLink="/about"
+              onClick={() => setShowMenu(false)}
+            >
+              <IonIcon slot="start" icon={informationCircle} />
+              <IonLabel>Acerca de</IonLabel>
+            </IonItem>
+            
+            {completedCount > 0 && (
+              <IonItem 
+                button 
+                detail={false}
+                onClick={() => {
+                  setShowMenu(false);
+                  setShowDeleteCompletedAlert(true);
+                }}
+                className="delete-completed-item"
+              >
+                <IonIcon slot="start" icon={trash} color="danger" />
+                <IonLabel color="danger">Eliminar completadas</IonLabel>
+                <IonBadge slot="end" color="danger">
+                  {completedCount}
+                </IonBadge>
+              </IonItem>
+            )}
+            
+            <IonItem 
+              button 
+              detail={false}
+              onClick={() => {
+                setShowMenu(false);
+                setShowClearAlert(true);
+              }}
+              className="clear-all-item"
+            >
+              <IonIcon slot="start" icon={trash} color="danger" />
+              <IonLabel color="danger">Eliminar todas</IonLabel>
+            </IonItem>
+          </IonList>
+        </IonContent>
+      </IonPopover>
+
+      <IonContent fullscreen className="ion-padding">
         <IonLoading isOpen={loading} message="Cargando tareas..." />
 
-        {/* Alertas */}
+        {/* ===== ALERTAS ===== */}
         <IonAlert
           isOpen={showClearAlert}
           onDidDismiss={() => setShowClearAlert(false)}
@@ -136,17 +306,35 @@ const Home: React.FC = () => {
           ]}
         />
 
-        {/* Modal para agregar tareas */}
+        <IonAlert
+          isOpen={showDeleteCompletedAlert}
+          onDidDismiss={() => setShowDeleteCompletedAlert(false)}
+          header="Eliminar tareas completadas"
+          message={`¿Eliminar ${completedCount} tarea(s) completada(s)?`}
+          buttons={[
+            {
+              text: 'Cancelar',
+              role: 'cancel',
+            },
+            {
+              text: 'Eliminar',
+              role: 'destructive',
+              handler: handleDeleteCompleted
+            }
+          ]}
+        />
+
+        {/* ===== MODAL PARA AGREGAR TAREAS ===== */}
         <AddTaskModal
           isOpen={showAddModal}
           onClose={() => setShowAddModal(false)}
           onSave={handleAddTask}
         />
 
-        <div style={{ padding: "16px" }}>
+        <div className="content-container">
           {/* Estado del Storage */}
           <IonCard color={storageInfo.usingFallback ? "warning" : "success"}>
-            <IonCardContent style={{ padding: "12px" }}>
+            <IonCardContent className="storage-info">
               <small>
                 <strong>Almacenamiento:</strong> {storageInfo.storageType}
               </small>
@@ -155,67 +343,89 @@ const Home: React.FC = () => {
 
           {/* Estadísticas */}
           <IonCard>
-            <IonCardContent style={{ textAlign: "center", padding: "16px" }}>
-              <div style={{ display: "flex", justifyContent: "space-around" }}>
-                <div>
+            <IonCardContent className="stats-card">
+              <div className="stats-container">
+                <div className="stat-item">
                   <IonBadge color="primary">{filterStats.total}</IonBadge>
-                  <div style={{ fontSize: "12px", marginTop: "4px" }}>
-                    Total
-                  </div>
+                  <div className="stat-label">Total</div>
                 </div>
-                <div>
+                <div className="stat-item">
                   <IonBadge color="success">{filterStats.completed}</IonBadge>
-                  <div style={{ fontSize: "12px", marginTop: "4px" }}>
-                    Completadas
-                  </div>
+                  <div className="stat-label">Completadas</div>
                 </div>
-                <div>
+                <div className="stat-item">
                   <IonBadge color="warning">{filterStats.pending}</IonBadge>
-                  <div style={{ fontSize: "12px", marginTop: "4px" }}>
-                    Pendientes
-                  </div>
+                  <div className="stat-label">Pendientes</div>
                 </div>
               </div>
-              <SearchBar
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
-                onClearSearch={clearSearch}
-                resultsCount={filteredTasks.length}
-              />
+              
+              {/* Barra de búsqueda */}
+              {SearchBar && (
+                <SearchBar
+                  searchQuery={searchQuery}
+                  onSearchChange={setSearchQuery}
+                  onClearSearch={clearSearch}
+                  resultsCount={filteredTasks.length}
+                />
+              )}
             </IonCardContent>
           </IonCard>
 
-          {/* Lista de tareas */}
-          <h3 style={{ margin: "16px 0 8px 0" }}>
+          {/* Filtros rápidos */}
+          <div className="quick-filters">
+            <IonSegment 
+              value={activeFilter} 
+              onIonChange={(e) => setActiveFilter(e.detail.value as any)}
+              scrollable={true}
+            >
+              <IonSegmentButton value="all">
+                <IonLabel>Todas</IonLabel>
+                <IonBadge color="medium">{filterStats.total}</IonBadge>
+              </IonSegmentButton>
+              <IonSegmentButton value="pending">
+                <IonLabel>Pendientes</IonLabel>
+                <IonBadge color="warning">{filterStats.pending}</IonBadge>
+              </IonSegmentButton>
+              <IonSegmentButton value="completed">
+                <IonLabel>Completadas</IonLabel>
+                <IonBadge color="success">{filterStats.completed}</IonBadge>
+              </IonSegmentButton>
+            </IonSegment>
+          </div>
+
+          {/* Componente de Filtros */}
+          {TaskFilters && (
+            <TaskFilters
+              activeFilter={activeFilter}
+              onFilterChange={setActiveFilter}
+              filterStats={filterStats}
+              searchQuery={searchQuery}
+            />
+          )}
+
+          {/* Título de la lista */}
+          <h3 className="list-title">
             {getActiveFilterName()} ({filteredTasks.length})
           </h3>
 
-          {/* Componente de Filtros */}
-          <TaskFilters
-            activeFilter={activeFilter}
-            onFilterChange={setActiveFilter}
-            filterStats={filterStats}
-            searchQuery={searchQuery} // ← NUEVA PROP
-          />
-
+          {/* Lista vacía */}
           {filteredTasks.length === 0 && !loading && (
-            <IonCard>
-              <IonCardContent
-                style={{ textAlign: "center", padding: "40px 20px" }}
-              >
-                <IonIcon
-                  icon={create}
-                  style={{ fontSize: "48px", color: "#ccc" }}
-                />
-                <h3 style={{ color: "#666", margin: "16px 0 8px 0" }}>
+            <IonCard className="empty-state">
+              <IonCardContent>
+                <IonIcon icon={create} className="empty-icon" />
+                <h3>
                   {activeFilter === "completed"
                     ? "No hay tareas completadas"
                     : activeFilter === "pending"
                     ? "No hay tareas pendientes"
+                    : searchQuery
+                    ? "No se encontraron resultados"
                     : "No hay tareas"}
                 </h3>
-                <p style={{ color: "#888", fontSize: "14px" }}>
-                  {activeFilter === "all"
+                <p>
+                  {searchQuery
+                    ? "Intenta con otros términos de búsqueda"
+                    : activeFilter === "all"
                     ? "Presiona el botón + para agregar tu primera tarea"
                     : "Cambia el filtro o crea nuevas tareas"}
                 </p>
@@ -223,40 +433,41 @@ const Home: React.FC = () => {
             </IonCard>
           )}
 
-          <IonList>
+          {/* Lista de tareas */}
+          <IonList className="task-list">
             {filteredTasks.map((task) => (
               <IonItem
                 key={task.id}
-                className={task.completed ? "task-completed" : ""}
+                className={`task-item ${task.completed ? "task-completed" : ""}`}
+                lines="full"
               >
                 <IonCheckbox
                   slot="start"
                   checked={task.completed}
                   onIonChange={() => handleToggleTask(task.id)}
+                  className="task-checkbox"
                 />
-                <IonLabel>
-                  <h3 style={{ margin: "0 0 4px 0" }}>{task.title}</h3>
-                  <p
-                    style={{
-                      margin: "0",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                    }}
-                  >
-                    <IonChip color={getCategoryColor(task.category)}>
+                <IonLabel className="task-content">
+                  <h3 className="task-title">{task.title}</h3>
+                  <div className="task-meta">
+                    <IonChip 
+                      color={getCategoryColor(task.category)}
+                      className="category-chip"
+                    >
                       {CategoryDisplay[task.category]}
                     </IonChip>
-                    <span style={{ fontSize: "12px", color: "#666" }}>
+                    <span className="task-date">
                       {task.createdAt.toLocaleDateString()}
                     </span>
-                  </p>
+                  </div>
                 </IonLabel>
                 <IonButton
                   slot="end"
                   fill="clear"
                   color="danger"
                   onClick={() => setDeleteTaskId(task.id)}
+                  className="delete-task-button"
+                  size="small"
                 >
                   <IonIcon icon={trash} />
                 </IonButton>
@@ -265,9 +476,9 @@ const Home: React.FC = () => {
           </IonList>
         </div>
 
-        {/* Floating Action Button */}
+        {/* ===== BOTÓN FLOTANTE ===== */}
         <IonFab vertical="bottom" horizontal="end" slot="fixed">
-          <IonFabButton onClick={() => setShowAddModal(true)}>
+          <IonFabButton onClick={() => setShowAddModal(true)} className="add-task-fab">
             <IonIcon icon={add} />
           </IonFabButton>
         </IonFab>

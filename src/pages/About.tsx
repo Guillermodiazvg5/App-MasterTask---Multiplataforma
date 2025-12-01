@@ -171,10 +171,10 @@ const About: React.FC = () => {
           <IonCardContent>
             <div style={{ textAlign: 'center' }}>
               <h2 style={{ margin: '0 0 8px 0', color: 'var(--ion-color-primary)' }}>
-                v1.0.0
+                v3.0.0
               </h2>
               <p style={{ margin: 0, color: 'var(--ion-color-medium)' }}>
-                Fase 2 - Sistema de Filtros
+                UI/UX
               </p>
             </div>
           </IonCardContent>
